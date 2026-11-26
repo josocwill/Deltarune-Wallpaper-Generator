@@ -1,15 +1,25 @@
 from PIL import Image, ImageTk
 import tkinter as tk
+from tkinter.ttk import Progressbar
 from tkinter.filedialog import asksaveasfilename
 from random import random as ran, choice
-from os import listdir, mkdir
+from os import listdir, mkdir, remove
 from os.path import isdir
 from subprocess import Popen
+from zipfile import ZipFile
 # Fetch sprites
 
 if not isdir("./assets"):
     mkdir("./assets")
 characters = listdir("./assets")
+for c in characters:
+    if c[-4:] == ".zip":
+        zip = ZipFile("./assets/" + c, 'r')
+        zip.extractall("./assets/")
+        zip.close()
+        remove("./assets/" + c)
+
+characters = listdir("./assets/")
 
 vis = tk.Tk()
 vis.attributes("-fullscreen", 1)
@@ -25,7 +35,6 @@ root = tk.Tk()
 root.geometry(f"{columns*300+50}x{60 + min(16, len(characters)+1)*30}")
 root.title("Deltarune Wallpaper Maker")
 root.attributes("-topmost", 1)
-root.attributes("-alpha", 0.8)
 root.bind("")
 
 wid = root.winfo_screenwidth()
@@ -62,22 +71,32 @@ spritescalescale = tk.Scale(root, from_=1, to=10, variable=spritescale, orient="
 spritescalescale.place(width=-200, relwidth=1, x=80)
 countinglabel = tk.Label(root, text="", fg="#00F", font="DeterminationMonoWeb", justify="center")
 countinglabel.place(relwidth=0.4, relx=0.5, rely=-0.5, anchor=tk.CENTER)
+pbar = Progressbar(root)
+pbar.place(y=-100)
 
 def generate(event):
-    global characters, chances, spriteamount, spritescale, tkimg, wid, hei, imgdisplay, img, countinglabel
+    global characters, chances, spriteamount, spritescale, tkimg, wid, hei, imgdisplay, img, countinglabel, pbar, root
     countinglabel.place(rely=0.5)
     spramount = spriteamount.get()
+    root.attributes("-alpha", 0.7)
+    pbar.config(maximum=spramount, value=0)
+    pbar.place(width=-10-90/columns, relwidth=1/columns, x=90 + len(characters)//16*290, y=60+(len(characters)%16)*30)
     chancelist = []
+    scale = spritescale.get()
     img = Image.new("RGBA", (wid, hei), "#000F")
     for c in characters:
         chancelist += [c]*chances[c].get()
+    if len(chancelist) == 0:
+        chancelist = characters.copy()
+
     for i in range(spramount):
         char = choice(chancelist)
         aux = Image.open("./assets/" + char + "/" + choice(listdir("./assets/" + char)))
-        aux = aux.resize((aux.size[0]*spritescale.get(), aux.size[1]*spritescale.get()), Image.Resampling.NEAREST)
-        img.alpha_composite(aux, (int(ran()*(wid+aux.size[0]))-aux.size[0], int(ran()*(hei+aux.size[1]))-aux.size[1]))
+        aux = aux.resize((aux.size[0]*scale, aux.size[1]*scale), Image.Resampling.NEAREST)
+        img.alpha_composite(aux, ((int(ran()*(wid+aux.size[0]))-aux.size[0])//scale*scale, (int(ran()*(hei+aux.size[1]))-aux.size[1])//scale*scale))
         if i % 10 == 0:
             countinglabel.config(text=str(i) + "/" + str(spramount))
+            pbar.config(value=i)
             root.update()
             if i % 200 == 0:
                 tkimg = ImageTk.PhotoImage(img)
@@ -87,14 +106,14 @@ def generate(event):
     imgdisplay.config(image=tkimg)
     vis.update()
     countinglabel.place(rely=-0.5)
+    pbar.place(y=-100)
+    root.attributes("-alpha", 1)
 
 def save(event):
     global img, root
     root.attributes("-topmost", 0)
-    root.attributes("-alpha", 1)
     img.save(asksaveasfilename(title="Save new background", initialfile="background.png"))
     root.attributes("-topmost", 1)
-    root.attributes("-alpha", 0.8)
 
 generatebtn = tk.Button(root, text="Generate")
 generatebtn.bind("<Button-1>", generate)
