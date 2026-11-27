@@ -23,12 +23,8 @@ for c in characters:
 
 characters = listdir("./assets/")
 
-palette = load(open("./palette.json", "r"))
-
 vis = tk.Tk()
 vis.attributes("-fullscreen", 1)
-#vis.geometry(f"{vis.winfo_screenwidth()}x{vis.winfo_screenheight()}+0+0")
-#vis.state("zoomed")
 vis.title("Super cool wallpaper visualizer")
 
 rows = min(len(characters)+1, 16)
@@ -142,6 +138,8 @@ root.bind_class("Entry", "<Enter>", onenterscale)
 root.bind_class("Entry", "<Leave>", onleavescale)
 vis.bind_class("Scale", "<Enter>", onenterscale)
 vis.bind_class("Scale", "<Leave>", onleavescale)
+vis.bind_class("Button", "<Enter>", onenterbtn)
+vis.bind_class("Button", "<Leave>", onleavebtn)
 spritescale = tk.IntVar(root, 1+int(ran()*10))
 spritescalescale = tk.Scale(
     root,
@@ -189,10 +187,25 @@ countinglabel.place(width=150, x=0, y=-100, height=40)
 pbar = Progressbar(vis, style="success.Striped.Horizontal.TProgressbar")
 pbar.place(y=-100, relwidth=1, x=0, height=15)
 
+cancelbtn = tk.Button(
+    vis,
+    text="* Cancel",
+    **style,
+    **btnstyle
+)
+
+cancelbtn.place(y=-100, height=30, width=80, x=150)
+def cancelgeneration(event):
+    global running
+    running = False
+cancelbtn.bind("<Button-1>", cancelgeneration)
+
+running = False
 
 def generate(event):
-    global characters, chances, spritescale, tkimg, wid, hei, imgdisplay, img, countinglabel, pbar, root
+    global characters, chances, spritescale, tkimg, wid, hei, imgdisplay, img, countinglabel, pbar, root, running
     countinglabel.place(y=15)
+    cancelbtn.place(y=15)
     generatebtn.config(fg="#888")
     generatebtn.unbind("<Enter>")
     generatebtn.unbind("<Leave>")
@@ -210,7 +223,10 @@ def generate(event):
     spramount = len(chancelist)
     pbar.config(maximum=spramount, value=0)
     pbar.place(y=0)
+    running = True
     for i in range(spramount):
+        if not running:
+            break
         char = chancelist.pop(int(ran()*len(chancelist)))
         aux = Image.open("./assets/" + char + "/" + choice(listdir("./assets/" + char)))
         aux = aux.resize((aux.size[0]*scale, aux.size[1]*scale), Image.Resampling.NEAREST)
@@ -226,6 +242,7 @@ def generate(event):
     
     setdarkness()
     countinglabel.place(y=-100)
+    cancelbtn.place(y=-100)
     pbar.place(y=-100)
     root.deiconify()
     #root.geometry(f"{columns*300+50}x{60 + min(16, len(characters)+1)*50}")
