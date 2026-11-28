@@ -3,6 +3,7 @@ from PIL.ImageEnhance import Brightness
 import tkinter as tk
 from tkinter.ttk import Progressbar, Style
 from tkinter.filedialog import asksaveasfilename
+from tkinter.font import families
 from random import random as ran, choice
 from os import listdir, mkdir, remove
 from os.path import isdir
@@ -53,8 +54,18 @@ chances:dict[str, tk.IntVar] = {}
 scales:dict[str, tk.Scale] = {}
 entries:dict[str, tk.Entry] = {}
 
+for i in [
+    "Determination Mono Web",
+    "Fixedsys",
+    "MS Serif",
+    "Terminal"
+]:
+    if i in families():
+        font = i
+        break
+
 style = {
-    "font":("Determination Mono Web", 13),
+    "font":(font, 13),
     "background":"#000",
     "foreground":"#FFF",
     "relief":tk.FLAT,
@@ -187,6 +198,14 @@ countinglabel.place(width=150, x=0, y=-100, height=40)
 pbar = Progressbar(vis, style="success.Striped.Horizontal.TProgressbar")
 pbar.place(y=-100, relwidth=1, x=0, height=15)
 
+errorlabel = tk.Label(
+    vis,
+    font=(font, 13),
+    background="#000",
+    foreground="#F00",
+    )
+errorlabel.place(x=0, y=-40, relx=1, rely=1, anchor=tk.SE)
+
 cancelbtn = tk.Button(
     vis,
     text="* Cancel",
@@ -217,8 +236,6 @@ def generate(event):
     img = Image.new("RGBA", (wid, hei), "#000F")
     for c in characters:
         chancelist += [c]*chances[c].get()
-    if len(chancelist) == 0:
-        chancelist = characters.copy()
 
     spramount = len(chancelist)
     pbar.config(maximum=spramount, value=0)
@@ -253,10 +270,16 @@ def generate(event):
 
 
 def save(event):
-    global img, root
+    global img, root, errorlabel
     root.attributes("-topmost", 0)
-    darkimg = Brightness(img).enhance(darkness.get())
-    darkimg.save(asksaveasfilename(title="Save new background", initialfile="background.png"))
+    darkimg = Brightness(img).enhance(float(darkness.get()))
+    fp = asksaveasfilename(title="Save new background", initialfile="background.png", defaultextension=".png")
+    if fp == "":
+        return None
+    try:
+        darkimg.save(fp)
+    except ValueError:
+        errorlabel.config(text="Error! Unknown image file extension '." + fp.split(".")[-1] + "'")
     root.attributes("-topmost", 1)
 
 generatebtn = tk.Button(
@@ -280,14 +303,15 @@ savebtn = tk.Button(
 savebtn.bind("<Button-1>", save)
 savebtn.place(x=-115,y=35, width=110, relx=1, height=20)
 
-def killbg(event):
-    global vis
-    vis.destroy()
+def quit(event):
+    root.quit()
 
-def killroot(event):
-    global root
-    root.destroy()
+root.bind("<Destroy>", quit)
 
-root.bind("<Destroy>", killbg)
-vis.bind("<Destroy>", killroot)
 root.mainloop()
+try:
+    vis.destroy()
+except tk.TclError:
+    pass
+except Exception as e:
+    print(e)
