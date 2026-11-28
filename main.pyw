@@ -272,7 +272,7 @@ def generate(event):
 def save(event):
     global img, root, errorlabel
     root.attributes("-topmost", 0)
-    darkimg = Brightness(img).enhance(float(darkness.get()))
+    darkimg = Brightness(img).enhance(1-float(darkness.get()))
     fp = asksaveasfilename(title="Save new background", initialfile="background.png", defaultextension=".png")
     if fp == "":
         return None
